@@ -14,6 +14,7 @@ int main(int argc, char *argv[]) {
         disp.blitSprite(0, 0, red);
         disp.blitSprite(0, 1, green);
         disp.blitSprite(1, 0, green);
+        disp.blitSprite(13, 9, green);
         
         disp.startRefreshing();
         

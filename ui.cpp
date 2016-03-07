@@ -1,5 +1,6 @@
 #include "ui.hpp"
 #include <chrono>
+#include <algorithm>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
@@ -56,8 +57,6 @@ Sprite::Sprite(const char *path) : sourceType(SOURCE_IMAGE) {
         throw UIDisplayError();
 }
 
-//#include <iostream>
-
 void Sprite::render(SDL_Renderer *renderer, SDL_Rect *rect) {
     switch (sourceType) {
         case SOURCE_RGB:
@@ -70,8 +69,6 @@ void Sprite::render(SDL_Renderer *renderer, SDL_Rect *rect) {
             break;
         case SOURCE_IMAGE:
             if (!texture) {
-                //std::cout << "making texture\n";
-                
                 if (!(texture = ImplicitPtr<SDL_Texture>(SDL_CreateTextureFromSurface(renderer, surface), SDL_DestroyTexture)))
                     throw UIDisplayError();
                 
@@ -84,6 +81,17 @@ void Sprite::render(SDL_Renderer *renderer, SDL_Rect *rect) {
             break;
     }
 }
+
+/*static void setMaxMode(SDL_Window *window) {
+    auto maxMode = std::max_element(
+        displayInfo[0].modes.begin(), displayInfo[1].modes.end(),
+        [](const SDL_DisplayMode &a, const SDL_DisplayMode &b) {
+            return a.w * a.h < b.w * b.h;
+        }
+    );
+    
+    SDL_SetWindowDisplayMode(window, &*maxMode);
+}*/
 
 UIDisplay::UIDisplay(
     int display,

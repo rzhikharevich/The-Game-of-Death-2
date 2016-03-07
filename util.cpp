@@ -4,11 +4,11 @@
 
 
 char *DuplicateString(const char *string) {
-    size_t size = strlen(string) + 1;
-    char *dup = (char *)malloc(size);
-    return (char *)memcpy(dup, string, size);
+    std::size_t size = std::strlen(string) + 1;
+    char *dup = (char *)std::malloc(size);
+    return (char *)std::memcpy(dup, string, size);
 }
 
 void FreeString(char *string) {
-    free(string);
+    std::free(string);
 }
