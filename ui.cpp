@@ -97,7 +97,7 @@ UIDisplay::UIDisplay(
     int display,
     int x, int y,
     int width, int height,
-    int rowNumber, int columnNumber,
+    int columnNumber, int rowNumber,
     bool fullscreen,
     const char *title) {
     if (x < 0)
@@ -214,7 +214,7 @@ void UIDisplay::startRefreshing() {
 }
 
 UIDisplayError::UIDisplayError() {
-    reason = shared_ptr<char>(DuplicateString(SDL_GetError()), FreeString);
+    reason = shared_ptr<char>(strdup(SDL_GetError()), FreeString);
 }
 
 vector<UIDisplayInfo> UIGetDisplayInfo() {

@@ -20,14 +20,14 @@ private:
         SOURCE_IMAGE
     } sourceType;
     
-    uint8_t red, green, blue;
+    std::uint8_t red, green, blue;
     
     ImplicitPtr<SDL_Surface> surface;
     
     ImplicitPtr<SDL_Texture> texture;
     
 public:
-    Sprite(uint8_t red, uint8_t green, uint8_t blue) : sourceType(SOURCE_RGB), red(red), green(green), blue(blue) {};
+    Sprite(std::uint8_t red, std::uint8_t green, std::uint8_t blue) : sourceType(SOURCE_RGB), red(red), green(green), blue(blue) {};
     Sprite(const char *path);
     
     void render(SDL_Renderer *renderer, SDL_Rect *rect);
@@ -52,9 +52,9 @@ private:
 public:
     UIDisplay(
         int display = 0,
-        int x = -1, int y = -1,
+        int x = 0, int y = 0,
         int width = -1, int height = -1,
-        int rowWidth = 20, int columnWidth = 20,
+        int columnNumber = 20, int rowNumber = 20,
         bool fullscreen = false,
         const char *title = ""
     );
