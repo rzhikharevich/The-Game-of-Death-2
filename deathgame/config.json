@@ -1,0 +1,36 @@
+{
+    "spriteWidth":  20,
+    "spriteHeight": 20,
+    "columnNumber": 20,
+    "rowNumber":    20,
+
+    "unitsPerLeague": 10,
+    "leagues": {
+        "bugs": {
+            "directory":     "bugs",
+            "startKind":     "woodlouse",
+            "defaultSprite": "bug.png",
+            "unitKinds": {
+                "woodlouse": {
+                    "exec":   "woodlouse.dasm",
+					"sprite": "#00FF00",
+                }
+            }
+        },
+        "aliens": {
+            "directory":     "aliens",
+            "startKind":     "hunter",
+            "defaultSprite": "alien.png",
+            "unitKinds": {
+                "queen": {
+					"exec":   "queen.dasm",
+					"sprite": "queen.png"
+				},
+				"hunter": {
+					"exec":   "hunter.dasm",
+					"sprite": "hunter.png"
+				}
+            }
+        }
+    }
+}
