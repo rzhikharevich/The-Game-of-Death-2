@@ -11,5 +11,5 @@ $ make
 
 ## Running
 
-The program needs a subdirectory called "deathgame" in the current working directory.
-It must contain a file "config.json". For examples see "deathgame/config.json" in the source tree.
+The current working directory must contain a file called "config.json".
+For an example see "deathgame/config.json" in the source tree.

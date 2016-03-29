@@ -12,36 +12,19 @@ static void help_exit(const char *exec, int code) {
     "\n"
     "Usage: " << exec << " [options]\n"
     "\n"
+    "Game setup files must be in the current working directory.\n"
+    "\n"
     "Options:\n"
-    " -help         show this help text\n"
-    " -bundle PATH  set game setup bundle path\n";
+    " -help         show this help text\n";
     
     std::exit(code);
 }
 
 int main(int argc, char *argv[]) {
-    std::string bundlePath = "deathgame";
-    bool hasBundlePath = false;
-    
     for (int i = 1; i < argc; i++) {
         std::unordered_map<std::string, std::function<void()>> options = {
             {"-help", [argv] {
                 help_exit(argv[0], 0);
-            }},
-            
-            {"-bundle", [argv, argc, &i, &bundlePath, &hasBundlePath] {
-                if (++i >= argc) {
-                    std::cerr << "Expected an argument after '-bundle'.\n";
-                    exit(1);
-                }
-                
-                if (hasBundlePath) {
-                    std::cerr << "Can't have multiple bundle paths.\n";
-                    exit(1);
-                }
-                
-                bundlePath = argv[i];
-                hasBundlePath = true;
             }}
         };
         
@@ -57,7 +40,9 @@ int main(int argc, char *argv[]) {
         UIInit();
         std::atexit(UIQuit);
         
-        Config config(bundlePath + "/config.json");
+        Config config("config.json");
+        
+        std::cout << "Dumping league information...\n";
         
         for (auto &kv : config.getLeagueInfo()) {
             auto &l = kv.second;

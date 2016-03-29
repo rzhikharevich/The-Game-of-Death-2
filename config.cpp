@@ -71,6 +71,9 @@ static void checkSpriteInfo(const std::string &parentPath, const Json::Value &in
 }
 
 static SpriteInfo *parseSpriteInfo(const Json::Value &value) {
+    if (value.isInt())
+        return new SpriteInfoSquareRGB(value.asInt());
+    
     auto s = value.asString();
     
     if (s.front() == '#') {
@@ -136,7 +139,7 @@ void Config::parse(const char *path, Json::Value &root) {
                 checkSpriteInfo(unitKindPath, root["leagues"][league]["unitKinds"][kind]["sprite"]);
             
             info.unitKinds[kind] = {
-                .exec = root["leagues"][league]["unitKinds"][kind]["exec"].asString(),
+                .exec = root["leagues"][league]["unitKinds"][kind].get("exec", kind + ".dasm").asString(),
                 .sprite = std::shared_ptr<SpriteInfo>(
                     parseSpriteInfo(
                         root["leagues"][league]["unitKinds"][kind].get("sprite", defaultSprite)
@@ -195,7 +198,8 @@ std::ostream &operator <<(std::ostream &os, const SpriteInfo *info) {
             std::cout.fill(fill);
             
             return os;
-        } case SpriteInfo::Type::ImagePath:
+        }
+        case SpriteInfo::Type::ImagePath:
             return os << *static_cast<const SpriteInfoImagePath *>(info);
     }
 }

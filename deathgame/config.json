@@ -1,35 +1,24 @@
 {
-    "spriteWidth":  20,
-    "spriteHeight": 20,
+    "spriteWidth":  40,
+    "spriteHeight": 40,
     "columnNumber": 20,
     "rowNumber":    20,
-
+    
     "unitsPerLeague": 10,
     "leagues": {
-        "bugs": {
-            "directory":     "bugs",
-            "startKind":     "woodlouse",
-            "defaultSprite": "bug.png",
+        "bees": {
             "unitKinds": {
-                "woodlouse": {
-                    "exec":   "woodlouse.dasm",
-					"sprite": "#00FF00",
+                "start": {
+                    "sprite": "start.png"
                 }
             }
         },
-        "aliens": {
-            "directory":     "aliens",
-            "startKind":     "hunter",
-            "defaultSprite": "alien.png",
+        "chickens": {
+            "startKind": "chick",
             "unitKinds": {
-                "queen": {
-					"exec":   "queen.dasm",
-					"sprite": "queen.png"
-				},
-				"hunter": {
-					"exec":   "hunter.dasm",
-					"sprite": "hunter.png"
-				}
+                "chick": {
+                    "sprite": "chick.png"
+                }
             }
         }
     }

@@ -12,12 +12,10 @@ using std::uint32_t;
 uint32_t GetRandom(uint32_t lt) {
     uint32_t rnd;
     
-#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+#ifdef UNIX
     /*
      * UNIX.
      */
-    
-#include <sys/param.h>
     
 #ifdef BSD
     /*
@@ -51,6 +49,11 @@ uint32_t GetRandom(uint32_t lt) {
     return rnd;
 }
 
+void ChangeDir(const char *path) {
+    if (chdir(path))
+        throw FileError(path);
+}
+
 std::ifstream FileOpenIn(const char *path, bool binary) {
     std::ifstream fs(path, binary? std::ios::binary : 0);
     if (!fs)
@@ -60,5 +63,5 @@ std::ifstream FileOpenIn(const char *path, bool binary) {
 }
 
 FileError::FileError(const char *path) {
-    reason = std::string("Failed to open file: '") + path + "'.";
+    reason = std::string("Failed to access: '") + path + "'.";
 }

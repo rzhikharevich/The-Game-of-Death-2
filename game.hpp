@@ -6,17 +6,18 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <exception>
+#include <stdexcept>
+#include <thread>
 #include "ui.hpp"
 #include "config.hpp"
 
 
-// rework Executable, create UnitKind
-
-class Game;
-class League;
-class Unit;
-class Executable;
+class  Game;
+class  GameError;
+class  League;
+class  Unit;
+struct UnitKind;
+class  Executable;
 
 /*
  * Game.
@@ -26,23 +27,24 @@ class Game {
 private:
     UIDisplay display;
     const Config &config;
+    std::unordered_map<std::string, League> leagues;
+    
+    std::thread thread;
+    
+    std::vector<Unit *> board;
+    
+    void getRandomLocation(int &x, int &y);
     
 public:
-    Game(const Config &config)
-    : config(config), display(
-        0, 0, 0,
-        config.getColumnNumber() * config.getSpriteWidth(),
-        config.getRowNumber()    * config.getSpriteHeight(),
-        config.getColumnNumber(), config.getRowNumber(),
-        false, "The Game of Death"
-    ) {};
+    Game(const Config &config);
+    ~Game();
+    
+    SpriteID registerSprite(const Sprite &sprite) {return display.registerSprite(sprite);}
     
     const Config &getConfig() const noexcept {return config;};
     
-    int getX()      const noexcept {return display.getX();}
-    int getY()      const noexcept {return display.getY();}
-    int getWidth()  const noexcept {return display.getWidth();}
-    int getHeight() const noexcept {return display.getHeight();}
+    bool isValidPosition(int x, int y);
+    bool isFreePosition(int x, int y);
     
     void start();
 };
@@ -53,11 +55,12 @@ public:
 
 class League {
 private:
-    std::vector<Unit> units;
-    std::unordered_map<std::string, Executable> exec;
-    
+    std::unordered_map<std::string, UnitKind> unitKinds;
 public:
+    League() {}
     League(Game &game, const LeagueInfo &info);
+    
+    std::vector<Unit> units;
 };
 
 /*
@@ -66,9 +69,6 @@ public:
 
 class Unit {
 public:
-    Game &game;
-    const League &league;
-    
     enum class Direction {
         North = 0,
         East  = 1,
@@ -79,8 +79,6 @@ public:
     
     static Direction getRandomDirection();
     
-    void randomizeDirection();
-    
     enum class InsnRep {
         Eat,
         Go,
@@ -89,19 +87,26 @@ public:
     
     typedef long Weight;
     
-    Unit(Game &game, const League &league, const Executable &exec);
+    Unit(Game &game, const League &league, SpriteID sprite, const Executable &exec)
+    : game(game), league(league), sprite(sprite), exec(exec) {}
+    
+    SpriteID getSpriteID() {return sprite;}
     
 private:
-    Direction direction;
+    Game &game;
+    const League &league;
+    
+    Direction direction = getRandomDirection();
     
     InsnRep insnRep;
-    int     insnRepCnt;
+    int     insnRepCnt = 0;
     
-    Weight weight;
+    Weight weight = 5;
     
+    SpriteID sprite;
     const Executable &exec;
     
-    std::size_t pc;
+    std::size_t pc = 0;
 };
 
 /*
@@ -114,6 +119,7 @@ private:
     Lines lines;
     
 public:
+    Executable() {}
     Executable(const std::string &path);
     
     const Lines &getLines() const noexcept {return lines;}
@@ -123,5 +129,15 @@ public:
         return lines[i];
     }
 };
+
+/*
+ * UnitKind.
+ */
+
+struct UnitKind {
+    SpriteID   sprite;
+    Executable exec;
+};
+
 
 #endif

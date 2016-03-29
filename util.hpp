@@ -10,6 +10,17 @@
 #include <string.h>
 
 
+#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+#define UNIX
+#include <unistd.h>
+#include <sys/param.h>
+#elif defined(_WIN32)
+#define WINDOWS
+#include <windows.h>
+#include <direct.h>
+#endif
+
+
 uint32_t GetRandom(std::uint32_t lt = 0);
 
 static inline void FreeString(char *string) {std::free((void *)string);}
@@ -32,6 +43,8 @@ public:
         return *this;
     }
 };
+
+void ChangeDir(const char *path);
 
 std::ifstream FileOpenIn(const char *path, bool binary = false);
 static inline std::ifstream FileOpenIn(const std::string &path, bool binary = false) {
