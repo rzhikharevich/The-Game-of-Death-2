@@ -34,10 +34,17 @@ public:
     
     bool override(const char *path);
     
-    int getSpriteWidth()  const noexcept {return root.get("spriteWidth",  20).asInt();}
-    int getSpriteHeight() const noexcept {return root.get("spriteHeight", 20).asInt();}
-    int getColumnNumber() const noexcept {return root.get("columnNumber", 20).asInt();}
-    int getRowNumber()    const noexcept {return root.get("rowNumber",    20).asInt();}
+    int getSpriteWidth()  const {return root.get("spriteWidth",  20).asInt();}
+    int getSpriteHeight() const {return root.get("spriteHeight", 20).asInt();}
+    int getColumnNumber() const {return root.get("columnNumber", 20).asInt();}
+    int getRowNumber()    const {return root.get("rowNumber",    20).asInt();}
+    
+    void setSpriteSize(int w, int h) {
+        root["spriteWidth"]  = w;
+        root["spriteHeight"] = h;
+    }
+    
+    int getMoveDelay() const {return root.get("moveDelay", 1000).asInt();}
     
     int getUnitsPerLeague() const noexcept {return root.get("unitsPerLeague", 10).asInt();}
     const std::unordered_map<std::string, LeagueInfo> &getLeagueInfo() const noexcept {return leagueInfo;}

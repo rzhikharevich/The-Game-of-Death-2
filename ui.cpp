@@ -50,6 +50,8 @@ void UIInit() {
 void UIQuit() {
     IMG_Quit();
     SDL_Quit();
+    
+    displayInfo.clear();
 }
 
 Sprite::Sprite(const char *path) : sourceType(SOURCE_IMAGE) {
@@ -196,7 +198,8 @@ void UIDisplay::refresh() {
 }
 
 void UIDisplay::startRefreshing() {
-    bool cont = true;
+    cont = true;
+    
     while (cont) {
         SDL_Event evt;
         while (SDL_PollEvent(&evt)) {
@@ -211,6 +214,10 @@ void UIDisplay::startRefreshing() {
         
         SDL_Delay(30);
     }
+}
+
+void UIDisplay::stopRefreshing() {
+    cont = false;
 }
 
 UIDisplayError::UIDisplayError() {

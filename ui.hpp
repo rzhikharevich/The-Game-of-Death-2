@@ -49,6 +49,8 @@ private:
     int spriteWidth, spriteHeight;
     int columnNumber, rowNumber;
     
+    volatile bool cont;
+    
 public:
     UIDisplay(
         int display = 0,
@@ -69,6 +71,7 @@ public:
     
     void refresh();
     void startRefreshing();
+    void stopRefreshing();
 };
 
 class UIDisplayError : public std::exception {

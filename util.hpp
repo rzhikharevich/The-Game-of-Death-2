@@ -6,10 +6,12 @@
 #include <fstream>
 #include <memory>
 #include <exception>
+#include <type_traits>
 #include <cstdint>
 #include <string.h>
 
 
+namespace sys {
 #if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 #define UNIX
 #include <unistd.h>
@@ -18,10 +20,14 @@
 #define WINDOWS
 #include <windows.h>
 #include <direct.h>
+#else
+#error "Operating system unsupported."
 #endif
+}
 
 
 uint32_t GetRandom(std::uint32_t lt = 0);
+uint32_t GetRandom(std::uint32_t from, std::uint32_t to);
 
 static inline void FreeString(char *string) {std::free((void *)string);}
 

@@ -49,8 +49,12 @@ uint32_t GetRandom(uint32_t lt) {
     return rnd;
 }
 
+uint32_t GetRandom(std::uint32_t from, std::uint32_t to) {
+    return from + GetRandom(to + 1);
+}
+
 void ChangeDir(const char *path) {
-    if (chdir(path))
+    if (sys::chdir(path))
         throw FileError(path);
 }
 

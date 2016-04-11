@@ -100,6 +100,7 @@ void Config::parse(const char *path, Json::Value &root) {
         {"spriteHeight",   Json::ValueType::intValue},
         {"columnNumber",   Json::ValueType::intValue},
         {"rowNumber",      Json::ValueType::intValue},
+        {"moveDelay",      Json::ValueType::intValue},
         {"unitsPerLeague", Json::ValueType::intValue},
         {"leagues",        Json::ValueType::objectValue}
     });
