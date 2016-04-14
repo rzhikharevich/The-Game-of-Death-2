@@ -1,5 +1,6 @@
-CXXFLAGS = -std=c++14
-LDFLAGS  = -lSDL2 -lSDL2_image
+DEPS     = jsoncpp sdl2 SDL2_image
+CXXFLAGS = -std=c++14 $(shell pkg-config --cflags $(DEPS))
+LDFLAGS  = $(shell pkg-config --libs $(DEPS))
 OBJS     = $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 APP_NAME = deathgame
 
