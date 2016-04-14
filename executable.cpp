@@ -8,12 +8,11 @@ Executable::Executable(const std::string &path) {
     auto in = FileOpenIn(path);
     
     std::vector<Word> jmp;
-    Word offs = 0;
     
     std::string line;
     int n = 1;
     while (std::getline(in, line)) {
-        jmp.push_back(offs);
+        jmp.push_back((Word)bytecode.size());
         
         std::vector<std::string> insn;
         
@@ -41,10 +40,8 @@ Executable::Executable(const std::string &path) {
                 case 2:
                     try {
                         bytecode.push_back((Word)std::stoul(insn[1]));
-                    } catch (const std::invalid_argument &) {
-                        throw ExecutableError(path, n);
-                    }
-                    break;
+                        break;
+                    } catch (const std::invalid_argument &) {}
                 default:
                     throw ExecutableError(path, n);
             }
@@ -146,8 +143,6 @@ Executable::Executable(const std::string &path) {
         } catch (const std::out_of_range &) {
             throw ExecutableError(path, n);
         }
-        
-        offs += bytecode[jmp.back()] == InsnTurn ? 1 : insn.size();
         
         n++;
     }

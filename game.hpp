@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <thread>
 #include <cstdlib>
+#include <ostream>
 
 #include "executable.hpp"
 #include "ui.hpp"
@@ -27,6 +28,8 @@ class  Executable;
  */
 
 class Game {
+    friend std::ostream &operator<<(std::ostream &os, const Game &game);
+    
     friend League;
     friend Unit;
     
@@ -45,11 +48,13 @@ private:
     
 public:
     Game(const Config &config);
-    ~Game() noexcept;
+    ~Game();
     
     SpriteID registerSprite(const Sprite &sprite) {return display.registerSprite(sprite);}
     
     const Config &getConfig() const noexcept {return config;};
+    
+    const LeagueMap &getLeagues() const noexcept {return leagues;}
     
     bool isValidPosition(int x, int y) const;
     bool isFreePosition(int x, int y) const;
@@ -67,13 +72,22 @@ class League {
 private:
     std::unordered_map<std::string, UnitKind> unitKinds;
     std::size_t nextUnitIndex = 0;
+    
+    std::uint64_t totalBiomass;
+    
 public:
     League() {}
     League(Game &game, const LeagueInfo &info);
     
     std::vector<Unit> units;
     Unit *getNextUnit();
+    
+    std::uint64_t getTotalBiomass() const;
 };
+
+static inline bool operator<(const League &a, const League &b) {
+    return a.getTotalBiomass() < b.getTotalBiomass();
+}
 
 /*
  * Unit.
@@ -98,30 +112,7 @@ public:
         int getX() const noexcept {return x;}
         int getY() const noexcept {return y;}
         
-        void move(const Game &game, Direction dir) {
-            int x1 = x;
-            int y1 = y;
-            
-            switch (dir) {
-                case Direction::North:
-                    y1++;
-                    break;
-                case Direction::East:
-                    x1++;
-                    break;
-                case Direction::South:
-                    y1++;
-                    break;
-                case Direction::West:
-                    x1--;
-                    break;
-            }
-            
-            if (game.isFreePosition(x1, y1)) {
-                x = x1;
-                y = y1;
-            }
-        }
+        void move(const Game &game, Direction dir);
     };
     
     static Direction getRandomDirection();
@@ -129,15 +120,13 @@ public:
     enum class InsnRep {
         Eat,
         Go,
-        Str,
-        Left,
-        Right
+        Str
     };
     
     typedef long Weight;
     
-    Unit(/*Game &game, const League &league,*/ SpriteID sprite, Executable &exec, int x, int y)
-    : /*game(game), league(league),*/ sprite(sprite), exec(&exec), position(x, y) {}
+    Unit(/*Game &game, const League &league,*/ SpriteID sprite, Executable &exec, int x, int y, bool newborn = false)
+    : /*game(game), league(league),*/ sprite(sprite), exec(&exec), position(x, y), weight(newborn? 2 : 5) {}
     
     /*Unit(const Unit &src) :
     position(src.position), direction(src.direction),
@@ -168,7 +157,7 @@ private:
     InsnRep insnRep;
     int     insnRepCnt = 0;
     
-    Weight weight = 5;
+    Weight weight;
     
     bool loseWeight(Game &game, Weight loss = 1);
     

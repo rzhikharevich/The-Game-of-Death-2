@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <functional>
 #include <stdexcept>
+#include <algorithm>
 #include "game.hpp"
 #include "util.hpp"
 
@@ -16,8 +17,9 @@ static void help_exit(const char *exec, int code) {
     "Game setup files must be in the current working directory.\n"
     "\n"
     "Options:\n"
-    " -help             show this help text\n"
-    " -sprite-size WxH  set sprite size overriding configuration\n";
+    " -help              show this help text\n"
+    " -sprite-size WxH   set sprite size overriding configuration\n"
+    " -move-delay DELAY  set the delay between moves\n";
     
     std::exit(code);
 }
@@ -25,6 +27,8 @@ static void help_exit(const char *exec, int code) {
 int main(int argc, char *argv[]) {
     int spriteWidth  = -1;
     int spriteHeight = -1;
+
+    int moveDelay = -1;
     
     for (int i = 1; i < argc; i++) {
         std::unordered_map<std::string, std::function<void()>> options = {
@@ -45,8 +49,22 @@ int main(int argc, char *argv[]) {
                 try {
                     spriteWidth  = std::stoi(wh.substr(0, sep));
                     spriteHeight = std::stoi(wh.substr(sep + 1));
-                } catch (...) {
-                    std::cerr << "Flag '-sprite-size' argument is invalid, it must be two integers separated by 'x'.\n";
+                } catch (const std::invalid_argument &) {
+                    std::cerr << "Flag '-sprite-size' value is invalid, it must be two integers separated by 'x'.\n";
+                    help_exit(argv[0], 1);
+                }
+            }},
+            
+            {"-move-delay", [argv, argc, &i, &moveDelay] {
+                if (++i >= argc) {
+                    std::cerr << "Argument expected after flag '-move-delay'.\n";
+                    help_exit(argv[0], 1);
+                }
+                
+                try {
+                    moveDelay = std::atoi(argv[i]);
+                } catch (const std::invalid_argument &) {
+                    std::cerr << "Flag '-move-delay' value is invalid, it must be an integer.\n";
                     help_exit(argv[0], 1);
                 }
             }}
@@ -68,6 +86,9 @@ int main(int argc, char *argv[]) {
         
         if (spriteWidth > 0)
             config.setSpriteSize(spriteWidth, spriteHeight);
+        
+        if (moveDelay >= 0)
+            config.setMoveDelay(moveDelay);
         
         std::cout << "Dumping league information...\n";
         
@@ -92,6 +113,11 @@ int main(int argc, char *argv[]) {
         
         Game game(config);
         game.start();
+        
+        std::cout << "Finish!\n";
+        
+        for (auto &kv : game.getLeagues())
+            std::cout << "- " << kv.first << ": " << kv.second.getTotalBiomass() << '\n';
     } catch (const std::exception &exc) {
         std::cout << exc.what() << std::endl;
         return 1;

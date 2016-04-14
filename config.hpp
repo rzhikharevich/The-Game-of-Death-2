@@ -44,7 +44,10 @@ public:
         root["spriteHeight"] = h;
     }
     
-    int getMoveDelay() const {return root.get("moveDelay", 1000).asInt();}
+    int  getMoveDelay() const    {return root.get("moveDelay", 250).asInt();}
+    void setMoveDelay(int delay) {root["moveDelay"] = delay;}
+    
+    int getMaxMoves() const {return root.get("maxMoves", 1000000).asInt();}
     
     int getUnitsPerLeague() const noexcept {return root.get("unitsPerLeague", 10).asInt();}
     const std::unordered_map<std::string, LeagueInfo> &getLeagueInfo() const noexcept {return leagueInfo;}

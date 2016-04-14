@@ -3,9 +3,10 @@
 #include <cstring>
 #include <functional>
 #include <array>
-#include <iostream>
 #include <cassert>
 #include "util.hpp"
+
+//#include <iostream>
 
 
 Game::Game(const Config &config)
@@ -25,12 +26,14 @@ Game::Game(const Config &config)
         leagues[kv.first] = League(*this, kv.second);
 }
 
-Game::~Game() noexcept {
+Game::~Game() {
     thread.join();
 }
 
 bool Game::isValidPosition(int x, int y) const {
-    return x < config.getColumnNumber() && y < config.getRowNumber();
+    return
+    x > 0 && x < config.getColumnNumber() &&
+    y > 0 && y < config.getRowNumber();
 }
 
 bool Game::isFreePosition(int x, int y) const {
@@ -52,12 +55,19 @@ void Game::start() {
         
         auto ileague = std::next(leagues.begin(), GetRandom((std::uint32_t)leagues.size()));
         
+        int move = 0;
+        int maxMoves = config.getMaxMoves();
+        
         while (threadCont) {
             auto &league = ileague->second;
-            auto unit = league.getNextUnit();
             
-            if (!unit) {
-                auto next = ileague++;
+            if (auto unit = league.getNextUnit()) {
+                unit->execInsn(*this, league);
+                
+                if (++move == maxMoves)
+                    break;
+            } else {
+                auto next = std::next(ileague);
                 
                 leagues.erase(ileague);
                 if (leagues.size() < 2) {
@@ -70,8 +80,6 @@ void Game::start() {
                 continue;
             }
             
-            unit->execInsn(*this, league);
-            
             std::this_thread::sleep_for(std::chrono::milliseconds(delay));
             
             if (++ileague == leagues.end())
@@ -83,6 +91,10 @@ void Game::start() {
     
     threadCont = false;
 }
+
+/*std::ostream &operator<<(std::ostream &os, const Game &game) {
+    
+}*/
 
 static Sprite spriteFromInfo(const std::string &directory, const SpriteInfo *info) {
     switch (info->getType()) {
@@ -123,16 +135,52 @@ League::League(Game &game, const LeagueInfo &info) {
     }
 }
 
+std::uint64_t League::getTotalBiomass() const {
+    std::uint64_t total = 0;
+    
+    for (auto &unit : units)
+        total += unit.getWeight();
+    
+    return total;
+}
+
+void Unit::Position::move(const Game &game, Direction dir) {
+    int x1 = x;
+    int y1 = y;
+    
+    switch (dir) {
+        case Direction::North:
+            y1--;
+            break;
+        case Direction::East:
+            x1++;
+            break;
+        case Direction::South:
+            y1++;
+            break;
+        case Direction::West:
+            x1--;
+            break;
+    }
+    
+    if (game.isFreePosition(x1, y1)) {
+        x = x1;
+        y = y1;
+    }
+}
+
 void Unit::execInsn(Game &game, League &league) {
+    //std::cout << "pc == " << pc << "        ";
+    
     auto eat = [this] {
         weight++;
     };
     
     auto go = [this, &game] {
+        //std::cout << "go\n";
+        
         if (!loseWeight(game, 1))
             return;
-        
-        std::cout << "go\n";
         
         game.board[position.getY() * game.getConfig().getColumnNumber() + position.getX()] = nullptr;
         game.display.blitSprite(position.getX(), position.getY(), 0);
@@ -144,6 +192,9 @@ void Unit::execInsn(Game &game, League &league) {
     };
     
     auto clon = [this, &game, &league] {
+        if (!loseWeight(game, 10))
+            return;
+        
         auto pos = position;
         pos.move(game, direction);
         
@@ -152,15 +203,15 @@ void Unit::execInsn(Game &game, League &league) {
         if (unit)
             unit->weight += 2;
         else {
-            league.units.push_back(Unit(sprite, *exec, pos.getX(), pos.getY()));
+            league.units.push_back(Unit(sprite, *exec, pos.getX(), pos.getY(), true));
             unit = &league.units.back();
         }
     };
     
     auto str = [this, &game] {
         if (loseWeight(game, 1))
-        if (auto enemy = findEnemy(game))
-            enemy->damage(game, weight);
+            if (auto enemy = findEnemy(game))
+                enemy->damage(game, weight);
     };
     
     auto left = [this] {
@@ -176,6 +227,7 @@ void Unit::execInsn(Game &game, League &league) {
     };
     
     auto turn = [this] {
+        //std::cout << "turn\n";
         direction = getRandomDirection();
     };
     
@@ -190,12 +242,6 @@ void Unit::execInsn(Game &game, League &league) {
             case InsnRep::Str:
                 str();
                 break;
-            case InsnRep::Left:
-                left();
-                break;
-            case InsnRep::Right:
-                right();
-                break;
         }
         
         insnRepCnt--;
@@ -203,9 +249,8 @@ void Unit::execInsn(Game &game, League &league) {
         struct Handler {
             std::function<void()> fn;
             std::size_t size;
+            bool pseudo;
         };
-        
-        std::cout << pc << '\n';
         
         std::array<Handler, Executable::InsnMax + 1> handlers = {
 #define REP_HANDLER(c, f) \
@@ -220,27 +265,27 @@ void Unit::execInsn(Game &game, League &league) {
                     f();\
                     \
                     insnRepCnt--;\
-                }, .size = 2\
+                }, .size = 2, .pseudo = false\
             }
             
             REP_HANDLER(Eat, eat),
             REP_HANDLER(Go,  go),
             
-            Handler {.fn = clon, .size = 1},
+            Handler {.fn = clon, .size = 1, .pseudo = false},
             
-            REP_HANDLER(Str,   str),
-            REP_HANDLER(Left,  left),
-            REP_HANDLER(Right, right),
+            REP_HANDLER(Str, str),
             
-            Handler {.fn = back, .size = 1},
-            Handler {.fn = turn, .size = 1},
+            Handler {.fn = left,  .size = 1, .pseudo = true},
+            Handler {.fn = right, .size = 1, .pseudo = true},
+            Handler {.fn = back,  .size = 1, .pseudo = true},
+            Handler {.fn = turn,  .size = 1, .pseudo = true},
             
             Handler {
                 .fn = [this] {
                     if (weight > (*exec)[pc + 1])
                         pc = (*exec)[pc + 2] - 3;
                 },
-                .size = 3
+                .size = 3, .pseudo = true
             },
             
             Handler {
@@ -248,14 +293,15 @@ void Unit::execInsn(Game &game, League &league) {
                     if (weight < (*exec)[pc + 1])
                         pc = (*exec)[pc + 2] - 3;
                 },
-                .size = 3
+                .size = 3, .pseudo = true
             },
             
             Handler {
                 .fn = [this] {
+                    //std::cout << "j " << (*exec)[pc + 1] << '\n';
                     pc = (*exec)[pc + 1] - 2;
                 },
-                .size = 2
+                .size = 2, .pseudo = true
             },
             
             Handler {
@@ -263,23 +309,32 @@ void Unit::execInsn(Game &game, League &league) {
                     if (findEnemy(game))
                         pc = (*exec)[pc + 1] - 2;
                 },
-                .size = 2
+                .size = 2, .pseudo = true
             }
             
 #undef REP_HANDLER
         };
         
-        auto opcode = (*exec)[pc];
-        assert(opcode < handlers.size());
+        int mad = 0;
+        while (true) {
+            auto opcode = (*exec)[pc];
+            assert(opcode < handlers.size());
+            
+            auto &h = handlers[opcode];
+            h.fn();
+            pc += h.size;
+            
+            if (!h.pseudo)
+                break;
+            
+            if (++mad >= 31) {
+                loseWeight(game, 5);
+                break;
+            }
+        }
         
-        auto &h = handlers[opcode];
-        h.fn();
-        pc += h.size;
-        
-        std::cout << "pc == " << pc << '\n';
-        
-        //if (pc >= exec->size())
-        //    pc = 0;
+        if (pc >= exec->size())
+            pc = 0;
     }
 }
 
@@ -317,29 +372,32 @@ bool Unit::loseWeight(Game &game, Weight loss) {
         return true;
     
     game.board[position.getY() * game.getConfig().getColumnNumber() + position.getX()] = nullptr;
+    game.display.blitSprite(position.getX(), position.getY(), 0);
     
     return false;
 }
 
 Unit *League::getNextUnit() {
+    if (units.empty())
+        return nullptr;
+    
     auto *unit = &units[nextUnitIndex];
     
     while (unit->isDead()) {
-        auto a = std::next(units.begin(), nextUnitIndex + 1);
-        auto b = a;
-        while (b->isDead())
+        auto a = units.begin();
+        std::advance(a, nextUnitIndex);
+        
+        auto b = a + 1;
+        while (b != units.end() && b->isDead())
             b++;
         
         units.erase(a, b);
         
-        if (units.empty()) {
-            
-        }
+        if (units.empty())
+            return nullptr;
         
-        if (nextUnitIndex == units.size())
+        if (nextUnitIndex >= units.size())
             nextUnitIndex = 0;
-        
-        unit = &units[nextUnitIndex];
     }
     
     if (++nextUnitIndex >= units.size())

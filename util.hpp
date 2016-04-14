@@ -6,7 +6,7 @@
 #include <fstream>
 #include <memory>
 #include <exception>
-#include <type_traits>
+#include <functional>
 #include <cstdint>
 #include <string.h>
 
@@ -65,6 +65,35 @@ public:
     FileError(const char *path);
     
     virtual const char *what() const noexcept {return reason.c_str();}
+};
+
+template <class Value>
+class Lazy {
+private:
+    typedef std::function<Value()> Getter;
+    
+    Getter get;
+    Value value;
+
+    bool ready = false;
+    
+public:
+    Lazy(const Getter &get) : get(get) {};
+    
+    operator Value() {
+        if (ready)
+            return value;
+        
+        return value = get();
+    }
+    
+    Value *operator->() {
+        return &value;
+    }
+    
+    void reset() {
+        ready = false;
+    }
 };
 
 

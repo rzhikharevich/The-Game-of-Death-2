@@ -4,7 +4,7 @@
     "columnNumber": 20,
     "rowNumber":    20,
     
-    "unitsPerLeague": 10,
+    "unitsPerLeague": 2,
     "leagues": {
         "bees": {
             "unitKinds": {
