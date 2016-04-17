@@ -6,7 +6,7 @@
 #include <cassert>
 #include "util.hpp"
 
-//#include <iostream>
+#include <iostream>
 
 
 Game::Game(const Config &config)
@@ -92,10 +92,6 @@ void Game::start() {
     threadCont = false;
 }
 
-/*std::ostream &operator<<(std::ostream &os, const Game &game) {
-    
-}*/
-
 static Sprite spriteFromInfo(const std::string &directory, const SpriteInfo *info) {
     switch (info->getType()) {
         case SpriteInfo::Type::SquareRGB: {
@@ -127,7 +123,7 @@ League::League(Game &game, const LeagueInfo &info) {
         int x, y;
         game.getRandomLocation(x, y);
         
-        units.push_back(Unit(skind.sprite, skind.exec, x, y));
+        units.push_back(Unit(skind.sprite, &skind.exec, x, y));
         
         game.board[y * game.getConfig().getColumnNumber() + x] = &units.back();
         
@@ -139,33 +135,34 @@ std::uint64_t League::getTotalBiomass() const {
     std::uint64_t total = 0;
     
     for (auto &unit : units)
-        total += unit.getWeight();
+        if (!unit.isDead())
+            total += unit.getWeight();
     
     return total;
 }
 
 void Unit::Position::move(const Game &game, Direction dir) {
-    int x1 = x;
-    int y1 = y;
+    auto pos = *this;
+    pos.move(dir);
     
+    if (game.isFreePosition(pos.getX(), pos.getY()))
+        *this = pos;
+}
+
+void Unit::Position::move(Unit::Direction dir) {
     switch (dir) {
         case Direction::North:
-            y1--;
+            y--;
             break;
         case Direction::East:
-            x1++;
+            x++;
             break;
         case Direction::South:
-            y1++;
+            y++;
             break;
         case Direction::West:
-            x1--;
+            x--;
             break;
-    }
-    
-    if (game.isFreePosition(x1, y1)) {
-        x = x1;
-        y = y1;
     }
 }
 
@@ -192,18 +189,29 @@ void Unit::execInsn(Game &game, League &league) {
     };
     
     auto clon = [this, &game, &league] {
-        if (!loseWeight(game, 10))
+        std::cout << "clon\n";
+        
+        if (!loseWeight(game, 10)) {
+            std::cout << "clon failed: not enough weight\n";
             return;
+        }
         
         auto pos = position;
         pos.move(game, direction);
         
+        if (!game.isValidPosition(pos.getX(), pos.getY())) {
+            std::cout << "clon failed: invalid destination\n";
+            return;
+        }
+        
         auto &unit = game.board[pos.getY() * game.getConfig().getColumnNumber() + pos.getX()];
         
-        if (unit)
+        if (unit) {
+            std::cout << "clon ok: growing an already existing unit\n";
             unit->weight += 2;
-        else {
-            league.units.push_back(Unit(sprite, *exec, pos.getX(), pos.getY(), true));
+        } else {
+            std::cout << "clon ok: new unit\n";
+            league.units.push_back(Unit(sprite, exec, pos.getX(), pos.getY(), true));
             unit = &league.units.back();
         }
     };
@@ -283,48 +291,63 @@ void Unit::execInsn(Game &game, League &league) {
             Handler {
                 .fn = [this] {
                     if (weight > (*exec)[pc + 1])
-                        pc = (*exec)[pc + 2] - 3;
+                        pc = (*exec)[pc + 2];
+                    else
+                        pc += 3;
                 },
-                .size = 3, .pseudo = true
+                .size = 0, .pseudo = true
             },
             
             Handler {
                 .fn = [this] {
                     if (weight < (*exec)[pc + 1])
-                        pc = (*exec)[pc + 2] - 3;
+                        pc = (*exec)[pc + 2];
+                    else
+                        pc += 3;
                 },
-                .size = 3, .pseudo = true
+                .size = 0, .pseudo = true
             },
             
             Handler {
                 .fn = [this] {
-                    //std::cout << "j " << (*exec)[pc + 1] << '\n';
-                    pc = (*exec)[pc + 1] - 2;
+                    std::cout << "j " << (*exec)[pc + 1] << '\n';
+                    pc = (*exec)[pc + 1];
                 },
-                .size = 2, .pseudo = true
+                .size = 0, .pseudo = true
             },
             
             Handler {
                 .fn = [this, &game] {
                     if (findEnemy(game))
-                        pc = (*exec)[pc + 1] - 2;
+                        pc = (*exec)[pc + 1];
+                    else
+                        pc += 2;
                 },
-                .size = 2, .pseudo = true
+                .size = 0, .pseudo = true
             }
             
 #undef REP_HANDLER
         };
+        
+        std::cout << "\nunit weight " << weight << '\n';
         
         int mad = 0;
         while (true) {
             auto opcode = (*exec)[pc];
             assert(opcode < handlers.size());
             
+            std::cout << "unit @ " << position.getX() << "," << position.getY() << " executing op " << opcode << " @ " << pc << '\n';
+            
             auto &h = handlers[opcode];
             h.fn();
             pc += h.size;
             
-            if (!h.pseudo)
+            std::cout << "insn size: " << h.size << ", pc: " << pc << '\n';
+            
+            if (pc >= exec->size())
+                pc = 0;
+            
+            if (!h.pseudo || weight <= 0)
                 break;
             
             if (++mad >= 31) {
@@ -333,8 +356,7 @@ void Unit::execInsn(Game &game, League &league) {
             }
         }
         
-        if (pc >= exec->size())
-            pc = 0;
+        std::cout << "post move pc: " << pc << '\n';
     }
 }
 

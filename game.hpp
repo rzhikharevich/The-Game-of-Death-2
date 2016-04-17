@@ -113,6 +113,7 @@ public:
         int getY() const noexcept {return y;}
         
         void move(const Game &game, Direction dir);
+        void move(Direction dir);
     };
     
     static Direction getRandomDirection();
@@ -125,8 +126,8 @@ public:
     
     typedef long Weight;
     
-    Unit(/*Game &game, const League &league,*/ SpriteID sprite, Executable &exec, int x, int y, bool newborn = false)
-    : /*game(game), league(league),*/ sprite(sprite), exec(&exec), position(x, y), weight(newborn? 2 : 5) {}
+    Unit(/*Game &game, const League &league,*/ SpriteID sprite, Executable *exec, int x, int y, bool newborn = false)
+    : /*game(game), league(league),*/ sprite(sprite), exec(exec), position(x, y), weight(newborn? 2 : 5) {}
     
     /*Unit(const Unit &src) :
     position(src.position), direction(src.direction),
@@ -140,7 +141,7 @@ public:
     void execInsn(Game &game, League &league);
     
     Weight getWeight() const noexcept {return weight;}
-    bool isDead() const noexcept {return !weight;}
+    bool isDead() const noexcept {return weight <= 0;}
     
     SpriteID getSpriteID() {return sprite;}
     
