@@ -6,8 +6,6 @@
 #include <cassert>
 #include "util.hpp"
 
-#include <iostream>
-
 
 Game::Game(const Config &config)
 : config(config), display(
@@ -66,24 +64,21 @@ void Game::start() {
                 
                 if (++move == maxMoves)
                     break;
-            } else {
-                auto next = std::next(ileague);
                 
-                leagues.erase(ileague);
+                std::this_thread::sleep_for(std::chrono::milliseconds(delay));
+                
+                if (++ileague == leagues.end())
+                    ileague = leagues.begin();
+            } else {
+                ileague = leagues.erase(ileague);
                 if (leagues.size() < 2) {
                     display.stopRefreshing();
                     break;
                 }
                 
-                ileague = next == leagues.end() ? leagues.begin() : next;
-                
-                continue;
+                if (ileague == leagues.end())
+                    ileague = leagues.begin();
             }
-            
-            std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-            
-            if (++ileague == leagues.end())
-                ileague = leagues.begin();
         }
     });
     
@@ -117,7 +112,7 @@ League::League(Game &game, const LeagueInfo &info) {
 
     auto &skind = unitKinds[info.startKind];
     
-    units.reserve(cfg.getUnitsPerLeague());
+    units.reserve(cfg.getColumnNumber() * cfg.getRowNumber());
     
     for (int i = 0; i < cfg.getUnitsPerLeague(); i++) {
         int x, y;
@@ -166,16 +161,16 @@ void Unit::Position::move(Unit::Direction dir) {
     }
 }
 
+std::string Unit::Position::stringValue() {
+    return std::to_string(getX()) + "," + std::to_string(getY());
+}
+
 void Unit::execInsn(Game &game, League &league) {
-    //std::cout << "pc == " << pc << "        ";
-    
     auto eat = [this] {
         weight++;
     };
     
     auto go = [this, &game] {
-        //std::cout << "go\n";
-        
         if (!loseWeight(game, 1))
             return;
         
@@ -189,30 +184,23 @@ void Unit::execInsn(Game &game, League &league) {
     };
     
     auto clon = [this, &game, &league] {
-        std::cout << "clon\n";
-        
-        if (!loseWeight(game, 10)) {
-            std::cout << "clon failed: not enough weight\n";
+        if (!loseWeight(game, 10))
             return;
-        }
         
         auto pos = position;
         pos.move(game, direction);
         
-        if (!game.isValidPosition(pos.getX(), pos.getY())) {
-            std::cout << "clon failed: invalid destination\n";
+        if (!game.isValidPosition(pos.getX(), pos.getY()))
             return;
-        }
         
         auto &unit = game.board[pos.getY() * game.getConfig().getColumnNumber() + pos.getX()];
         
         if (unit) {
-            std::cout << "clon ok: growing an already existing unit\n";
             unit->weight += 2;
         } else {
-            std::cout << "clon ok: new unit\n";
             league.units.push_back(Unit(sprite, exec, pos.getX(), pos.getY(), true));
             unit = &league.units.back();
+            game.display.blitSprite(pos.getX(), pos.getY(), sprite);
         }
     };
     
@@ -235,7 +223,6 @@ void Unit::execInsn(Game &game, League &league) {
     };
     
     auto turn = [this] {
-        //std::cout << "turn\n";
         direction = getRandomDirection();
     };
     
@@ -310,7 +297,6 @@ void Unit::execInsn(Game &game, League &league) {
             
             Handler {
                 .fn = [this] {
-                    std::cout << "j " << (*exec)[pc + 1] << '\n';
                     pc = (*exec)[pc + 1];
                 },
                 .size = 0, .pseudo = true
@@ -329,20 +315,14 @@ void Unit::execInsn(Game &game, League &league) {
 #undef REP_HANDLER
         };
         
-        std::cout << "\nunit weight " << weight << '\n';
-        
         int mad = 0;
         while (true) {
             auto opcode = (*exec)[pc];
             assert(opcode < handlers.size());
             
-            std::cout << "unit @ " << position.getX() << "," << position.getY() << " executing op " << opcode << " @ " << pc << '\n';
-            
             auto &h = handlers[opcode];
             h.fn();
             pc += h.size;
-            
-            std::cout << "insn size: " << h.size << ", pc: " << pc << '\n';
             
             if (pc >= exec->size())
                 pc = 0;
@@ -355,8 +335,6 @@ void Unit::execInsn(Game &game, League &league) {
                 break;
             }
         }
-        
-        std::cout << "post move pc: " << pc << '\n';
     }
 }
 

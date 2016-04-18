@@ -52,9 +52,9 @@ public:
     
     SpriteID registerSprite(const Sprite &sprite) {return display.registerSprite(sprite);}
     
-    const Config &getConfig() const noexcept {return config;};
+    const Config &getConfig() const {return config;};
     
-    const LeagueMap &getLeagues() const noexcept {return leagues;}
+    const LeagueMap &getLeagues() const {return leagues;}
     
     bool isValidPosition(int x, int y) const;
     bool isFreePosition(int x, int y) const;
@@ -73,7 +73,7 @@ private:
     std::unordered_map<std::string, UnitKind> unitKinds;
     std::size_t nextUnitIndex = 0;
     
-    std::uint64_t totalBiomass;
+    std::vector<Unit> staging;
     
 public:
     League() {}
@@ -109,11 +109,13 @@ public:
     public:
         Position(int x, int y) : x(x), y(y) {};
         
-        int getX() const noexcept {return x;}
-        int getY() const noexcept {return y;}
+        int getX() const {return x;}
+        int getY() const {return y;}
         
         void move(const Game &game, Direction dir);
         void move(Direction dir);
+        
+        std::string stringValue();
     };
     
     static Direction getRandomDirection();
@@ -140,10 +142,12 @@ public:
     
     void execInsn(Game &game, League &league);
     
-    Weight getWeight() const noexcept {return weight;}
-    bool isDead() const noexcept {return weight <= 0;}
+    const Position getPosition() const {return position;}
     
-    SpriteID getSpriteID() {return sprite;}
+    Weight getWeight() const {return weight;}
+    bool isDead() const {return weight <= 0;}
+    
+    SpriteID getSpriteID() const {return sprite;}
     
 private:
     /*Game &game;
