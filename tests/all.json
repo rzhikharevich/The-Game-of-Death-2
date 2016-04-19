@@ -1,0 +1,20 @@
+{
+    "columnNumber": 20,
+    "rowNumber":    20,
+    
+    "tests": {
+        "eat": {
+            "source": {
+                [{"weight": 5}]
+            },
+            
+            "scripts": [
+                "eat3.dasm"
+            ],
+            
+            "result": {
+                [{"weight": 8}]
+            }
+        }
+    }
+}

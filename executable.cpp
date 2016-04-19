@@ -3,18 +3,17 @@
 #include <functional>
 #include "util.hpp"
 
+#include <iostream>
+
 
 Executable::Executable(const std::string &path) {
     auto in = FileOpenIn(path);
     
-    std::vector<Word> jmp;
+    std::vector<std::vector<std::string>> lines;
     
     std::string line;
-    int n = 1;
     while (std::getline(in, line)) {
-        jmp.push_back((Word)bytecode.size());
-        
-        std::vector<std::string> insn;
+        lines.resize(lines.size() + 1);
         
         std::size_t i = 0;
         std::size_t d;
@@ -27,11 +26,42 @@ Executable::Executable(const std::string &path) {
                 s = std::string(line, i, d - i);
             
             if (s.length())
-                insn.push_back(s);
+                lines.back().push_back(s);
             
             i = d + 1;
         } while (d != std::string::npos);
+    }
+    
+    int n = 0;
+    
+    std::vector<Word> jmp = {0};
+    
+    for (auto &line : lines) {
+        std::unordered_map<std::string, Word> sizes = {
+            {"eat",   2},
+            {"go",    2},
+            {"clon",  1},
+            {"str",   2},
+            {"left",  1},
+            {"right", 1},
+            {"back",  1},
+            {"turn",  1},
+            {"jg",    3},
+            {"jl",    3},
+            {"j",     2},
+            {"je",    2}
+        };
         
+        try {
+            jmp.push_back(jmp.back() + sizes.at(line.front()));
+        } catch (const std::logic_error &) {
+            throw ExecutableError(path, n);
+        }
+    }
+    
+    n = 0;
+    
+    for (auto &insn : lines) {
         auto parseOpN = [this, insn, path, n] {
             switch (insn.size()) {
                 case 1:
@@ -126,8 +156,8 @@ Executable::Executable(const std::string &path) {
             INSN(go,    Go,    NR),
             INSN(clon,  Clon,  None),
             INSN(str,   Str,   N),
-            INSN(left,  Left,  N),
-            INSN(right, Right, N),
+            INSN(left,  Left,  None),
+            INSN(right, Right, None),
             INSN(back,  Back,  None),
             INSN(turn,  Turn,  R),
             INSN(jg,    JG,    NJ),
@@ -150,4 +180,28 @@ Executable::Executable(const std::string &path) {
 
 ExecutableError::ExecutableError(const std::string &path, int line) {
     reason = path + ":" + std::to_string(line) + ": Syntax error.";
+}
+
+const std::string &DisasmOpcode(Executable::Word opcode) {
+    static std::string mnemonics[] = {
+        "eat",
+        "go",
+        "clon",
+        "str",
+        "left",
+        "right",
+        "back",
+        "turn",
+        "jg",
+        "jl",
+        "j",
+        "je"
+    };
+    
+    static std::string invalid = "(invalid)";
+    
+    if (opcode > Executable::InsnMax)
+        return invalid;
+    
+    return mnemonics[opcode];
 }

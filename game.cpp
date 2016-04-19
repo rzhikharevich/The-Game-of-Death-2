@@ -6,6 +6,8 @@
 #include <cassert>
 #include "util.hpp"
 
+#include <iostream>
+
 
 Game::Game(const Config &config)
 : config(config), display(
@@ -26,6 +28,18 @@ Game::Game(const Config &config)
 
 Game::~Game() {
     thread.join();
+}
+
+void Game::placeUnit(Unit &unit) {
+    auto &pos = unit.getPosition();
+    board[pos.getY() * config.getColumnNumber() + pos.getX()] = &unit;
+    display.blitSprite(pos.getX(), pos.getY(), unit.getSpriteID());
+}
+
+void Game::removeUnit(const Unit &unit) {
+    auto pos = unit.getPosition();
+    board[pos.getY() * config.getColumnNumber() + pos.getX()] = nullptr;
+    display.blitSprite(pos.getX(), pos.getY(), 0);
 }
 
 bool Game::isValidPosition(int x, int y) const {
@@ -58,6 +72,8 @@ void Game::start() {
         
         while (threadCont) {
             auto &league = ileague->second;
+            
+            std::cout << ileague->first << ": " << league.getTotalBiomass() << '/' << league.units.size() << '\n';
             
             if (auto unit = league.getNextUnit()) {
                 unit->execInsn(*this, league);
@@ -120,9 +136,7 @@ League::League(Game &game, const LeagueInfo &info) {
         
         units.push_back(Unit(skind.sprite, &skind.exec, x, y));
         
-        game.board[y * game.getConfig().getColumnNumber() + x] = &units.back();
-        
-        game.display.blitSprite(x, y, skind.sprite);
+        game.placeUnit(units.back());
     }
 }
 
@@ -174,13 +188,9 @@ void Unit::execInsn(Game &game, League &league) {
         if (!loseWeight(game, 1))
             return;
         
-        game.board[position.getY() * game.getConfig().getColumnNumber() + position.getX()] = nullptr;
-        game.display.blitSprite(position.getX(), position.getY(), 0);
-        
+        game.removeUnit(*this);
         position.move(game, direction);
-        
-        game.board[position.getY() * game.getConfig().getColumnNumber() + position.getX()] = this;
-        game.display.blitSprite(position.getX(), position.getY(), sprite);
+        game.placeUnit(*this);
     };
     
     auto clon = [this, &game, &league] {
@@ -193,14 +203,11 @@ void Unit::execInsn(Game &game, League &league) {
         if (!game.isValidPosition(pos.getX(), pos.getY()))
             return;
         
-        auto &unit = game.board[pos.getY() * game.getConfig().getColumnNumber() + pos.getX()];
-        
-        if (unit) {
+        if (auto unit = game.board[pos.getY() * game.getConfig().getColumnNumber() + pos.getX()])
             unit->weight += 2;
-        } else {
+        else {
             league.units.push_back(Unit(sprite, exec, pos.getX(), pos.getY(), true));
-            unit = &league.units.back();
-            game.display.blitSprite(pos.getX(), pos.getY(), sprite);
+            game.placeUnit(league.units.back());
         }
     };
     
@@ -229,12 +236,15 @@ void Unit::execInsn(Game &game, League &league) {
     if (insnRepCnt) {
         switch (insnRep) {
             case InsnRep::Eat:
+                std::cout << "rep eat\n";
                 eat();
                 break;
             case InsnRep::Go:
+                std::cout << "rep go\n";
                 go();
                 break;
             case InsnRep::Str:
+                std::cout << "rep str\n";
                 str();
                 break;
         }
@@ -320,6 +330,8 @@ void Unit::execInsn(Game &game, League &league) {
             auto opcode = (*exec)[pc];
             assert(opcode < handlers.size());
             
+            std::cout << DisasmOpcode(opcode) << '\n';
+            
             auto &h = handlers[opcode];
             h.fn();
             pc += h.size;
@@ -371,8 +383,7 @@ bool Unit::loseWeight(Game &game, Weight loss) {
     if ((weight -= loss) > 0)
         return true;
     
-    game.board[position.getY() * game.getConfig().getColumnNumber() + position.getX()] = nullptr;
-    game.display.blitSprite(position.getX(), position.getY(), 0);
+    game.removeUnit(*this);
     
     return false;
 }
@@ -398,6 +409,8 @@ Unit *League::getNextUnit() {
         
         if (nextUnitIndex >= units.size())
             nextUnitIndex = 0;
+        
+        unit = &units[nextUnitIndex];
     }
     
     if (++nextUnitIndex >= units.size())

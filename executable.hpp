@@ -63,5 +63,7 @@ public:
     virtual const char *what() const noexcept {return reason.c_str();}
 };
 
+const std::string &DisasmOpcode(Executable::Word opcode);
+
 
 #endif

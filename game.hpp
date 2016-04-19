@@ -28,9 +28,6 @@ class  Executable;
  */
 
 class Game {
-    friend std::ostream &operator<<(std::ostream &os, const Game &game);
-    
-    friend League;
     friend Unit;
     
 private:
@@ -52,9 +49,12 @@ public:
     
     SpriteID registerSprite(const Sprite &sprite) {return display.registerSprite(sprite);}
     
-    const Config &getConfig() const {return config;};
+    const Config &getConfig() const {return config;}
     
     const LeagueMap &getLeagues() const {return leagues;}
+    
+    void placeUnit(Unit &unit);
+    void removeUnit(const Unit &unit);
     
     bool isValidPosition(int x, int y) const;
     bool isFreePosition(int x, int y) const;

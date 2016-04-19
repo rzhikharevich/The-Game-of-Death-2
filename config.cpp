@@ -85,16 +85,7 @@ static SpriteInfo *parseSpriteInfo(const Json::Value &value) {
     return new SpriteInfoImagePath(s);
 }
 
-void Config::parse(const char *path, Json::Value &root) {
-    auto fs = FileOpenIn(path);
-    
-    Json::Reader reader;
-    if (!reader.parse(fs, root))
-        throw ConfigError(reader);
-    
-    if (!root.isObject())
-        throw ConfigError("The root must an object.");
-    
+void Config::parseGame() {
     checkMembers("root", root, {
         {"spriteWidth",    Json::ValueType::intValue},
         {"spriteHeight",   Json::ValueType::intValue},
@@ -102,7 +93,7 @@ void Config::parse(const char *path, Json::Value &root) {
         {"rowNumber",      Json::ValueType::intValue},
         {"moveDelay",      Json::ValueType::intValue},
         {"unitsPerLeague", Json::ValueType::intValue},
-        {"leagues",        Json::ValueType::objectValue}
+        {"leagues",        Json::ValueType::objectValue},
     });
     
     for (auto &league : root["leagues"].getMemberNames()) {
@@ -153,25 +144,28 @@ void Config::parse(const char *path, Json::Value &root) {
     }
 }
 
-Config::Config(const char *path) {
-    parse(path, root);
+void Config::parseTest() {
+    abort();
+    /*for (auto &name : root["tests"].getMemberNames()) {
+        
+    }*/
 }
 
-bool Config::override(const char *path) {
-    Json::Value root2;
-    parse(path, root2);
+Config::Config(const char *path) {
+    auto fs = FileOpenIn(path);
     
-    if (!root2.isObject())
-        return true;
+    Json::Reader reader;
+    if (!reader.parse(fs, root))
+        throw ConfigError(reader);
     
-    for (auto &name : root2.getMemberNames()) {
-        if (root[name].isArray() && root2[name].isArray())
-            root[name].append(root2[name]);
-        else
-            root[name] = root2[name];
-    }
+    if (!root.isObject())
+        throw ConfigError("The root must an object.");
     
-    return true;
+    if (root.isMember("tests")) {
+        checkMembers("root", root, {{"tests", Json::ValueType::objectValue}});
+        parseTest();
+    } else
+        parseGame();
 }
 
 ConfigError::ConfigError(const std::string &reason) {

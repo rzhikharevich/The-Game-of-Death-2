@@ -26,13 +26,16 @@ private:
     
     std::unordered_map<std::string, LeagueInfo> leagueInfo;
     
+    void parseGame();
+    void parseTest();
+    
 public:
-    void parse(const char *path, Json::Value &root);
+    void parse(const char *path);
     
     Config(const char *path);
     Config(const std::string &path) : Config(path.c_str()) {};
     
-    bool override(const char *path);
+    
     
     int getSpriteWidth()  const {return root.get("spriteWidth",  20).asInt();}
     int getSpriteHeight() const {return root.get("spriteHeight", 20).asInt();}
