@@ -63,7 +63,7 @@ std::ifstream FileOpenIn(const char *path, bool binary) {
     if (!fs)
         throw FileError(path);
     
-    return fs;
+    return std::move(fs);
 }
 
 FileError::FileError(const char *path) {

@@ -87,15 +87,15 @@ void Game::start() {
                     ileague = leagues.begin();
             } else {
                 ileague = leagues.erase(ileague);
-                if (leagues.size() < 2) {
-                    display.stopRefreshing();
+                if (leagues.size() < 2)
                     break;
-                }
                 
                 if (ileague == leagues.end())
                     ileague = leagues.begin();
             }
         }
+        
+        display.stopRefreshing();
     });
     
     display.startRefreshing();
